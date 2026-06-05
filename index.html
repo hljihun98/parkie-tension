@@ -2,422 +2,635 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<!-- 모바일 우선 반응형: 사용자 확대/축소 가능하도록 구성 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f7fb">
-<title>음파식 벨트 텐션 측정기 · U-550 방식</title>
+<meta name="theme-color" content="#edf0f5">
+<title>음파식 벨트 텐션 측정기 · U-550</title>
 
-<!-- 계기판 느낌의 기술 디스플레이 폰트(미로딩 시 모노스페이스로 안전하게 대체) -->
+<!-- Pretendard(한글/UI) + JetBrains Mono(수치/계측 표기) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
 
 <style>
-  /* ============================================================
-     색상 / 디자인 토큰 — 밝은 계기판 테마
-     ============================================================ */
-  :root{
-    --bg:#f4f7fb;
-    --panel:#ffffff;
-    --panel-2:#f8fbff;
-    --panel-3:#eef3f9;
-    --border:#d7e0ea;
-    --border-soft:#e4ebf3;
-    --text:#16202c;
-    --muted:#5f6f82;
-    --muted-2:#8a97a6;
+/* =====================================================================
+   DESIGN SYSTEM — "Precision Instrument" dark theme
+   ===================================================================== */
+:root{
+  /* surfaces (light) */
+  --ink:#edf0f5; --ink-2:#f3f6fa;
+  --surface:#ffffff; --surface-2:#fbfcfe; --surface-3:#f1f4f8;
+  --line:#e7ecf2; --line-2:#d6dee8;
+  /* text */
+  --text:#152232; --text-dim:#566576; --text-faint:#90a0b0;
+  /* brand / semantic */
+  --accent:#0ca99a; --accent-deep:#0b8c80; --accent-glow:rgba(12,169,154,.16);
+  --amber:#c1760f; --green:#16a34a; --warn:#d97706; --orange:#ea580c; --red:#e11d48;
+  --violet:#7c5cff;
+  /* legacy aliases so inline JS styles & leftover refs keep working */
+  --cyan:var(--accent); --muted:var(--text-dim); --muted-2:var(--text-faint);
+  --tension:var(--amber); --border:var(--line-2); --border-soft:var(--line);
+  /* shape */
+  --r-xs:9px; --r-sm:12px; --r:16px; --r-lg:22px;
+  --mono:'JetBrains Mono', ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+  --kr:'Pretendard','Pretendard Variable',system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --shadow:0 14px 34px -18px rgba(22,42,80,.20);
+}
 
-    --cyan:#0ea5e9;      /* 실시간/측정중 */
-    --green:#16a34a;     /* 양호/검출됨 */
-    --amber:#d97706;     /* 경고/주의 */
-    --orange:#ea580c;    /* 불안정/소음 */
-    --red:#dc2626;       /* 오류/거부 */
-    --tension:#b45309;   /* 최종 장력 강조색 */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--kr);
+  color:var(--text);
+  background:var(--ink);
+  background-image:
+    radial-gradient(1100px 520px at 80% -10%, rgba(12,169,154,.10), transparent 60%),
+    radial-gradient(820px 460px at 0% 4%, rgba(193,118,15,.06), transparent 58%),
+    linear-gradient(180deg,#f2f5f9 0%, #edf0f5 45%);
+  background-attachment:fixed;
+  line-height:1.5;
+  min-height:100vh;
+  letter-spacing:-.01em;
+  padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 40px);
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.app{max-width:480px;margin:0 auto;}
+::selection{background:rgba(12,169,154,.22);}
 
-    --mono:'Oxanium',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
-    --kr:system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+/* staggered entrance */
+@keyframes rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+.app>*{animation:rise .55s cubic-bezier(.2,.75,.25,1) both;}
+.app>*:nth-child(1){animation-delay:.02s}.app>*:nth-child(2){animation-delay:.07s}
+.app>*:nth-child(3){animation-delay:.12s}.app>*:nth-child(4){animation-delay:.17s}
+.app>*:nth-child(5){animation-delay:.22s}.app>*:nth-child(6){animation-delay:.27s}
+.app>*:nth-child(n+7){animation-delay:.3s}
+@media (prefers-reduced-motion:reduce){.app>*{animation:none;}}
 
-    --radius:16px;
-    --shadow:0 10px 30px rgba(15,23,42,.10);
-  }
+/* ---------- top bar ---------- */
+.topbar{display:flex;align-items:center;gap:12px;padding:18px 4px 16px;}
+.brand{display:flex;align-items:center;gap:11px;min-width:0;}
+.mark{
+  width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(150deg,#e4fbf6,#ffffff);
+  border:1px solid #b9e8e1; box-shadow:0 0 0 1px rgba(12,169,154,.06), 0 6px 16px -9px rgba(12,169,154,.5);
+}
+.mark svg{display:block;}
+.brand-title{font-size:16.5px;font-weight:700;letter-spacing:-.02em;line-height:1.15;}
+.brand-sub{font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.22em;
+  color:var(--text-faint);text-transform:uppercase;margin-top:2px;}
+.status-pill{
+  margin-left:auto;flex:none;font-family:var(--mono);font-size:10.5px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;padding:7px 12px;border-radius:999px;
+  border:1px solid var(--line-2);color:var(--text-dim);background:var(--surface-2);
+  white-space:nowrap;transition:.2s;display:inline-flex;align-items:center;gap:7px;
+}
+.status-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85;}
+.status-pill.s-listen{color:var(--accent);border-color:rgba(61,215,192,.4);background:rgba(61,215,192,.1);}
+.status-pill.s-good{color:var(--green);border-color:rgba(86,217,140,.4);background:rgba(86,217,140,.1);}
+.status-pill.s-weak{color:var(--warn);border-color:rgba(244,196,78,.4);background:rgba(244,196,78,.1);}
+.status-pill.s-noise{color:var(--orange);border-color:rgba(251,139,60,.4);background:rgba(251,139,60,.1);}
+.status-pill.s-bad{color:var(--red);border-color:rgba(251,106,120,.4);background:rgba(251,106,120,.1);}
 
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;}
-  body{
-    font-family:var(--kr);
-    background:
-      radial-gradient(1200px 600px at 50% -10%, #dbeafe 0%, transparent 58%),
-      var(--bg);
-    color:var(--text);
-    line-height:1.45;
-    min-height:100vh;
-    padding:env(safe-area-inset-top) 14px calc(env(safe-area-inset-bottom) + 28px);
-    -webkit-font-smoothing:antialiased;
-  }
-  .wrap{max-width:560px;margin:0 auto;}
+/* ---------- panels ---------- */
+.panel{
+  background:linear-gradient(180deg,var(--surface) 0%, var(--surface-2) 100%);
+  border:1px solid var(--line); border-radius:var(--r);
+  padding:18px; margin-top:14px; box-shadow:var(--shadow);
+  position:relative;
+}
+.panel-title{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 15px;
+}
+.panel-title .ko{font-size:13px;font-weight:700;letter-spacing:-.01em;color:var(--text);
+  display:flex;align-items:center;gap:9px;}
+.panel-title .ko::before{content:"";width:4px;height:14px;border-radius:99px;
+  background:linear-gradient(180deg,var(--accent),var(--accent-deep));}
+.panel-title .en{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.16em;
+  color:var(--text-faint);text-transform:uppercase;}
 
-  /* ---------- 상단 헤더 ---------- */
-  header{padding:22px 4px 14px;}
-  .badge-method{
-    display:inline-block;font-family:var(--mono);font-weight:600;font-size:11px;
-    letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);
-    border:1px solid rgba(14,165,233,.25);border-radius:999px;
-    padding:5px 11px;background:rgba(14,165,233,.08);margin-bottom:12px;
-  }
-  h1{
-    font-family:var(--mono);font-weight:800;font-size:26px;line-height:1.15;
-    margin:0 0 6px;letter-spacing:-.01em;
-  }
-  h1 .spark{color:var(--cyan);}
-  .subtitle{color:var(--muted);font-size:13.5px;margin:0;max-width:42ch;}
+/* ---------- HERO ---------- */
+.hero{
+  margin-top:6px;padding:22px 20px 20px;border-radius:var(--r-lg);
+  background:
+    radial-gradient(420px 220px at 88% -20%, rgba(193,118,15,.10), transparent 60%),
+    linear-gradient(180deg,#ffffff 0%, #fbfcfe 100%);
+  border:1px solid var(--line-2);
+  box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.6);
+  overflow:hidden;
+}
+.hero::before{content:"";position:absolute;inset:0 0 auto 0;height:2px;
+  background:linear-gradient(90deg,transparent, var(--amber) 30%, var(--accent) 75%, transparent);
+  opacity:.7;}
+.hero-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.hero-label{font-family:var(--kr);font-size:11px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text-dim);}
+#resJudgeWrap{
+  font-family:var(--mono);font-size:13px;font-weight:800;letter-spacing:.04em;
+  display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;
+  border:1px solid var(--line-2);background:var(--surface-3);color:var(--text-faint);transition:.2s;
+}
+#resJudgeWrap::before{content:"JUDGE";font-family:var(--mono);font-size:8.5px;font-weight:600;
+  letter-spacing:.14em;color:var(--text-faint);opacity:.8;}
+#resJudgeWrap.judge-ok{border-color:rgba(86,217,140,.45);background:rgba(86,217,140,.12);color:var(--green);}
+#resJudgeWrap.judge-ok::before{color:var(--green);opacity:.7;}
+#resJudgeWrap.judge-ng{border-color:rgba(251,106,120,.45);background:rgba(251,106,120,.12);color:var(--red);}
+#resJudgeWrap.judge-ng::before{color:var(--red);opacity:.7;}
 
-  /* ---------- 공통 패널 ---------- */
-  .panel{
-    background:linear-gradient(180deg,var(--panel) 0%,var(--panel-2) 100%);
-    border:1px solid var(--border-soft);border-radius:var(--radius);
-    padding:16px;margin-top:14px;box-shadow:var(--shadow);
-  }
-  .panel-title{
-    font-family:var(--mono);font-weight:600;font-size:12px;letter-spacing:.12em;
-    text-transform:uppercase;color:var(--muted);margin:0 0 12px;
-    display:flex;align-items:center;gap:8px;
-  }
-  .panel-title::before{content:"";width:6px;height:14px;background:var(--cyan);border-radius:2px;}
+.hero-readout{display:flex;align-items:baseline;gap:10px;margin:10px 0 2px;}
+#resTensionN{font-family:var(--mono);font-weight:800;font-size:66px;line-height:.92;
+  color:var(--amber);letter-spacing:-.04em;font-variant-numeric:tabular-nums;
+  text-shadow:none;}
+.hero-unit{font-family:var(--mono);font-weight:700;font-size:24px;color:#a8741f;}
+.hero-kgf{font-family:var(--mono);font-size:16px;font-weight:500;color:var(--text-dim);letter-spacing:.01em;}
+.hero-kgf #resTensionKgf{color:var(--text);font-weight:700;}
 
-  /* ---------- 입력 영역 ---------- */
-  .inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .field{display:flex;flex-direction:column;}
-  .field.full{grid-column:1 / -1;}
-  .field label{
-    font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600;
-    display:flex;justify-content:space-between;align-items:baseline;
-  }
-  .field label .unit{font-family:var(--mono);color:var(--cyan);font-size:11px;}
-  .field input{
-    font-family:var(--mono);font-size:20px;font-weight:600;color:var(--text);
-    background:#fff;border:1px solid var(--border);border-radius:11px;
-    padding:13px 14px;width:100%;outline:none;transition:border-color .15s,box-shadow .15s;
-  }
-  .field input::placeholder{color:var(--muted-2);font-weight:400;}
-  .field input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.15);}
-  .field input.invalid{border-color:var(--red);box-shadow:0 0 0 3px rgba(248,113,113,.16);}
+/* target band gauge */
+.gauge{margin-top:18px;}
+.gauge-scale{display:flex;justify-content:space-between;font-family:var(--mono);
+  font-size:10.5px;font-weight:600;color:var(--text-faint);margin-bottom:7px;letter-spacing:.02em;}
+.gauge-scale .mid{color:var(--text-dim);}
+.gauge-track{position:relative;height:12px;border-radius:999px;background:var(--ink-2);
+  border:1px solid var(--line);overflow:hidden;}
+.gauge-zone{position:absolute;top:0;bottom:0;border-radius:999px;
+  background:linear-gradient(180deg,rgba(86,217,140,.5),rgba(86,217,140,.25));
+  box-shadow:inset 0 0 0 1px rgba(86,217,140,.4);transition:left .35s ease,width .35s ease,opacity .3s;}
+.gauge-marker{position:absolute;top:50%;left:50%;width:14px;height:14px;border-radius:50%;
+  transform:translate(-50%,-50%);background:var(--text-dim);
+  box-shadow:0 0 0 3px var(--surface), 0 0 0 4px var(--line-2);
+  transition:left .35s cubic-bezier(.2,.7,.2,1),background .25s,box-shadow .25s;z-index:2;}
+.gauge-marker.ok{background:var(--green);box-shadow:0 0 0 3px var(--surface),0 0 12px 1px rgba(86,217,140,.7);}
+.gauge-marker.ng{background:var(--red);box-shadow:0 0 0 3px var(--surface),0 0 12px 1px rgba(251,106,120,.7);}
+.gauge.no-target{opacity:.5;}
+.gauge-cap{margin-top:9px;text-align:center;font-family:var(--mono);font-size:11.5px;
+  font-weight:600;color:var(--text-dim);letter-spacing:.02em;}
+.gauge-cap b{color:var(--text);font-weight:700;}
 
-  .row-options{display:flex;gap:10px;margin-top:10px;align-items:flex-end;}
-  .row-options .field{flex:1;}
-  .preset-bar{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
-  .preset-btn{
-    min-height:44px;
-    padding:10px 12px;
-    border-radius:11px;
-    border:1px solid var(--border);
-    background:linear-gradient(180deg,#ffffff 0%,#eef4fb 100%);
-    color:var(--text);
-    font-family:var(--mono);
-    font-size:13px;
-    font-weight:700;
-    cursor:pointer;
-  }
-  .preset-btn .title{display:block;font-size:13px;line-height:1.15;}
-  .preset-btn .sub{display:block;margin-top:4px;font-size:11px;font-weight:600;color:var(--muted);}
-  .preset-btn.active{border-color:rgba(34,211,238,.55);box-shadow:0 0 0 3px rgba(34,211,238,.12) inset;color:var(--cyan);}
-  select{
-    font-family:var(--mono);font-size:15px;color:var(--text);background:#fff;
-    border:1px solid var(--border);border-radius:11px;padding:12px 12px;width:100%;outline:none;
-  }
-  select:focus{border-color:var(--cyan);}
+/* ---------- LIVE panel ---------- */
+.live-row{display:grid;grid-template-columns:1fr 1fr auto;gap:14px;align-items:center;}
+.stat .stat-k{font-size:10.5px;font-weight:600;color:var(--text-dim);letter-spacing:.02em;}
+.stat .stat-v{font-family:var(--mono);font-weight:800;font-size:27px;line-height:1.05;margin-top:5px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+.stat .stat-v i{font-style:normal;font-size:12px;font-weight:600;color:var(--text-faint);margin-left:3px;}
+.stat .stat-v.accent{color:var(--accent);}
+#liveFreq{color:var(--accent);}
 
-  /* ---------- 버튼 영역 ---------- */
-  .controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
-  button.btn{
-    font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:.01em;
-    border:1px solid var(--border);border-radius:13px;padding:15px 10px;
-    color:var(--text);background:linear-gradient(180deg,#ffffff 0%,#eef4fb 100%);cursor:pointer;
-    transition:transform .08s,filter .15s,background .15s,border-color .15s;
-    display:flex;align-items:center;justify-content:center;gap:7px;min-height:54px;
-  }
-  button.btn:active{transform:scale(.97);}
-  button.btn:disabled{opacity:.4;cursor:not-allowed;}
-  button.btn .ico{font-size:17px;line-height:1;}
-  .btn-start{grid-column:1 / -1;background:linear-gradient(135deg,#0fb6c8,#22d3ee);
-    color:#04222a;border-color:transparent;font-weight:800;font-size:17px;min-height:60px;}
-  .btn-stop{background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;border-color:transparent;}
-  .btn-hold{border-color:rgba(217,119,6,.35);color:var(--amber);}
-  .btn-hold.active{background:rgba(217,119,6,.10);}
-  .btn-save{border-color:rgba(22,163,74,.35);color:var(--green);}
+.conf-ring{position:relative;width:64px;height:64px;justify-self:end;}
+.ring-svg{transform:rotate(-90deg);width:64px;height:64px;display:block;}
+.ring-bg{fill:none;stroke:var(--line);stroke-width:6;}
+.ring-arc{fill:none;stroke:var(--accent);stroke-width:6;stroke-linecap:round;
+  stroke-dasharray:163.36;stroke-dashoffset:163.36;transition:stroke-dashoffset .5s ease,stroke .3s;}
+.conf-center{position:absolute;inset:0;display:grid;place-items:center;line-height:1;}
+.conf-center span{font-family:var(--mono);font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;}
+.conf-center i{font-style:normal;font-size:9px;color:var(--text-faint);font-weight:600;margin-left:1px;}
+.conf-label{grid-column:3;justify-self:end;font-size:9.5px;font-weight:600;color:var(--text-faint);
+  text-transform:uppercase;letter-spacing:.1em;font-family:var(--mono);margin-top:6px;text-align:center;width:64px;}
 
-  /* ---------- 실시간 측정 영역 ---------- */
-  .status-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-  .dot{width:12px;height:12px;border-radius:50%;background:var(--muted-2);flex:none;transition:background .2s;}
-  .dot.live{background:var(--cyan);box-shadow:0 0 0 0 rgba(34,211,238,.6);animation:pulse 1.4s infinite;}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,211,238,.55);}70%{box-shadow:0 0 0 10px rgba(34,211,238,0);}100%{box-shadow:0 0 0 0 rgba(34,211,238,0);}}
-  .status-text{font-family:var(--mono);font-weight:600;font-size:15px;}
+.signal{margin-top:18px;}
+.signal-head{display:flex;justify-content:space-between;font-size:10.5px;font-weight:600;
+  color:var(--text-dim);margin-bottom:8px;letter-spacing:.02em;}
+.signal-head #meterVal{font-family:var(--mono);color:var(--text);}
+.meter-track{height:10px;border-radius:999px;background:var(--ink-2);border:1px solid var(--line);overflow:hidden;}
+.meter-fill{height:100%;width:0%;border-radius:999px;
+  background:linear-gradient(90deg,var(--green),var(--warn) 68%,var(--red));transition:width .09s linear;}
 
-  .status-pill{
-    margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;
-    letter-spacing:.06em;text-transform:uppercase;padding:5px 10px;border-radius:999px;
-    border:1px solid var(--border);color:var(--muted);white-space:nowrap;
-  }
-  .status-pill.s-listen{color:var(--cyan);border-color:rgba(14,165,233,.28);background:rgba(14,165,233,.09);}
-  .status-pill.s-good{color:var(--green);border-color:rgba(22,163,74,.28);background:rgba(22,163,74,.09);}
-  .status-pill.s-weak{color:var(--amber);border-color:rgba(217,119,6,.28);background:rgba(217,119,6,.10);}
-  .status-pill.s-noise{color:var(--orange);border-color:rgba(234,88,12,.28);background:rgba(234,88,12,.10);}
-  .status-pill.s-bad{color:var(--red);border-color:rgba(220,38,38,.28);background:rgba(220,38,38,.08);}
+.live-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--line);}
+.dot-wrap{display:flex;align-items:center;gap:9px;min-width:0;}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--text-faint);flex:none;transition:background .2s;}
+.dot.live{box-shadow:0 0 0 0 var(--accent-glow);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(61,215,192,.5);}70%{box-shadow:0 0 0 9px rgba(61,215,192,0);}100%{box-shadow:0 0 0 0 rgba(61,215,192,0);}}
+.status-text{font-size:12.5px;font-weight:500;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.peak{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text-faint);letter-spacing:.04em;white-space:nowrap;}
+.peak b{color:var(--text-dim);font-weight:700;margin-left:4px;}
 
-  .live-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .live-cell{background:#fff;border:1px solid var(--border-soft);border-radius:12px;padding:12px 14px;}
-  .live-cell .k{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em;}
-  .live-cell .v{font-family:var(--mono);font-weight:800;font-size:30px;line-height:1.1;margin-top:4px;}
-  .live-cell .v small{font-size:14px;color:var(--muted);font-weight:600;}
-  #liveFreq{color:var(--cyan);}
+/* ---------- spectrum ---------- */
+.canvas-box{width:100%;border-radius:var(--r-sm);overflow:hidden;
+  background:linear-gradient(180deg,#f3f6fb,#eef2f8);border:1px solid var(--line);}
+canvas{display:block;width:100%;height:200px;}
 
-  /* 신호 강도 막대 */
-  .meter{margin-top:14px;}
-  .meter .k{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;}
-  .meter-track{height:14px;background:#fff;border:1px solid var(--border-soft);border-radius:999px;overflow:hidden;}
-  .meter-fill{height:100%;width:0%;border-radius:999px;
-    background:linear-gradient(90deg,var(--green),var(--amber) 70%,var(--red));transition:width .08s linear;}
+/* ---------- action bar ---------- */
+.actions{margin-top:14px;}
+.btn{
+  font-family:var(--mono);font-weight:700;font-size:14px;letter-spacing:.01em;
+  border:1px solid var(--line-2);border-radius:var(--r-sm);
+  color:var(--text);background:var(--surface-3);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:13px 12px;
+  transition:transform .07s,filter .18s,background .18s,border-color .18s,opacity .18s;
+}
+.btn:active{transform:scale(.975);}
+.btn:disabled{opacity:.38;cursor:not-allowed;}
+.btn .ico{font-size:14px;line-height:1;}
+.btn-start{width:100%;min-height:62px;font-size:17px;font-weight:800;letter-spacing:.02em;
+  color:#04221f;border:none;
+  background:linear-gradient(135deg,#48e3cb 0%, #18b9a3 100%);
+  box-shadow:0 14px 26px -14px rgba(12,169,154,.45), inset 0 1px 0 rgba(255,255,255,.45);}
+.btn-start:hover{filter:brightness(1.05);}
+.actions-sub{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;}
+.actions-sub .btn{min-height:48px;font-size:13px;}
+.btn-stop{color:#fff;border-color:transparent;background:linear-gradient(135deg,#f2596a,#d23b4c);}
+.btn-stop:disabled{background:var(--surface-3);color:var(--text);}
+.btn-hold{color:var(--warn);border-color:rgba(244,196,78,.3);}
+.btn-hold.active{background:rgba(244,196,78,.14);}
+.btn-save{color:var(--green);border-color:rgba(86,217,140,.3);}
 
-  /* ---------- 최종 결과 카드 ---------- */
-  .result-cards{display:grid;grid-template-columns:1fr;gap:12px;}
-  .tension-hero{
-    background:linear-gradient(135deg,#fff8e6 0%,#f8fbff 100%);
-    border:1px solid rgba(180,83,9,.18);border-radius:14px;padding:18px;text-align:center;
-  }
-  .tension-hero .k{font-size:12px;color:var(--amber);font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
-  .tension-hero .big{font-family:var(--mono);font-weight:800;font-size:56px;line-height:1;color:var(--tension);margin:6px 0 2px;}
-  .tension-hero .big small{font-size:22px;color:#a16207;}
-  .tension-hero .kgf{font-family:var(--mono);font-size:24px;font-weight:600;color:var(--text);}
-  .tension-hero .kgf small{font-size:13px;color:var(--muted);}
-  .result-sub{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .mini{background:#fff;border:1px solid var(--border-soft);border-radius:12px;padding:11px 13px;}
-  .mini .k{font-size:11px;color:var(--muted);font-weight:600;}
-  .mini .v{font-family:var(--mono);font-weight:700;font-size:19px;margin-top:3px;}
-  .result-meta{margin-top:10px;font-size:12px;color:var(--muted);font-family:var(--mono);
-    display:flex;flex-wrap:wrap;gap:6px 14px;}
-  .result-meta span b{color:var(--text);font-weight:600;}
-  .result-meta .judge-ok b{color:var(--green);}
-  .result-meta .judge-ng b{color:var(--red);}
+/* ---------- presets ---------- */
+.presets{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.preset{
+  text-align:left;padding:15px 15px;border-radius:var(--r-sm);cursor:pointer;
+  border:1px solid var(--line);background:var(--surface-2);color:var(--text);
+  transition:.18s;display:flex;flex-direction:column;gap:5px;
+}
+.preset:active{transform:scale(.985);}
+.preset .title{font-family:var(--mono);font-size:16px;font-weight:800;letter-spacing:-.01em;}
+.preset .sub{font-size:12px;color:var(--text-dim);font-weight:500;}
+.preset.active{border-color:var(--accent);background:linear-gradient(180deg,rgba(61,215,192,.1),rgba(61,215,192,.03));
+  box-shadow:inset 0 0 0 1px rgba(61,215,192,.25), 0 0 24px -12px var(--accent);}
+.preset.active .title{color:var(--accent);}
 
-  /* ---------- 그래프 ---------- */
-  .canvas-box{position:relative;width:100%;background:var(--bg);border:1px solid var(--border-soft);
-    border-radius:12px;overflow:hidden;}
-  canvas{display:block;width:100%;height:200px;}
+/* ---------- collapsibles ---------- */
+details.panel{padding:0;overflow:hidden;}
+details.panel>summary{list-style:none;cursor:pointer;padding:17px 18px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font-size:13px;font-weight:700;color:var(--text);}
+details.panel>summary::-webkit-details-marker{display:none;}
+details.panel>summary::before{content:"";width:4px;height:14px;border-radius:99px;margin-right:1px;
+  background:linear-gradient(180deg,var(--accent),var(--accent-deep));}
+details.panel>summary .sum-en{margin-left:auto;font-family:var(--mono);font-size:10px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);}
+details.panel>summary .chev{transition:transform .25s;color:var(--text-faint);font-size:13px;}
+details.panel[open]>summary .chev{transform:rotate(180deg);}
+details.panel .panel-body{padding:2px 18px 18px;}
 
-  /* ---------- 기록 표 ---------- */
-  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;border:1px solid var(--border-soft);}
-  table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:12.5px;white-space:nowrap;}
-  thead th{background:#edf3f9;color:var(--muted);font-weight:600;text-align:right;
-    padding:10px 12px;letter-spacing:.03em;position:sticky;top:0;}
-  thead th:first-child{text-align:center;}
-  tbody td{padding:9px 12px;text-align:right;border-top:1px solid var(--border-soft);color:var(--text);}
-  tbody td:first-child{text-align:center;color:var(--muted);}
-  tbody tr:nth-child(even){background:rgba(14,165,233,.03);}
-  .empty-row td{text-align:center !important;color:var(--muted-2);padding:18px;font-family:var(--kr);}
-  .tens-cell{color:var(--tension);font-weight:700;}
+/* ---------- inputs ---------- */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.field{display:flex;flex-direction:column;}
+.field.full{grid-column:1 / -1;}
+.field label{font-size:11px;color:var(--text-dim);margin-bottom:7px;font-weight:600;letter-spacing:.01em;
+  display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+.field label .unit{font-family:var(--mono);color:var(--accent);font-size:10px;font-weight:600;letter-spacing:.04em;}
+.field input, select{
+  font-family:var(--mono);font-size:18px;font-weight:600;color:var(--text);
+  background:var(--ink-2);border:1px solid var(--line-2);border-radius:var(--r-xs);
+  padding:13px 14px;width:100%;outline:none;transition:border-color .15s,box-shadow .15s;
+  font-variant-numeric:tabular-nums;
+}
+select{font-size:15px;}
+.field input::placeholder{color:var(--text-faint);font-weight:400;}
+.field input:focus, select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+.field input.invalid{border-color:var(--red);box-shadow:0 0 0 3px rgba(251,106,120,.18);}
+.estimate-input{display:grid;grid-template-columns:1fr 96px auto;gap:9px;align-items:stretch;}
+.estimate-input input{font-size:15px;}
+.estimate-input .btn{min-height:0;padding:0 16px;font-size:13px;}
+.note{margin-top:13px;padding:12px 14px;border-radius:var(--r-xs);font-size:12px;line-height:1.6;
+  color:var(--text-dim);background:var(--ink-2);border:1px solid var(--line);}
+.note b{color:var(--accent);font-weight:600;}
 
-  /* ---------- 안내 / 면책 ---------- */
-  .tips{list-style:none;margin:0;padding:0;}
-  .tips li{font-size:13px;color:var(--muted);padding:7px 0 7px 24px;position:relative;border-bottom:1px solid var(--border-soft);}
-  .tips li:last-child{border-bottom:none;}
-  .tips li::before{content:"›";position:absolute;left:6px;top:6px;color:var(--cyan);font-family:var(--mono);font-weight:800;}
-  .disclaimer{font-size:12px;color:var(--muted-2);line-height:1.6;margin-top:16px;
-    border:1px dashed var(--border);border-radius:12px;padding:13px 15px;background:#f8fbff;}
-  .disclaimer b{color:var(--amber);}
+/* ---------- detail result ---------- */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.mini{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--r-xs);padding:13px 14px;}
+.mini .k{font-size:10.5px;color:var(--text-dim);font-weight:600;letter-spacing:.02em;}
+.mini .v{font-family:var(--mono);font-weight:700;font-size:18px;margin-top:5px;font-variant-numeric:tabular-nums;}
+.detail-meta{margin-top:12px;font-family:var(--mono);font-size:11.5px;color:var(--text-dim);
+  display:grid;grid-template-columns:1fr 1fr;gap:9px 16px;}
+.detail-meta span{display:flex;justify-content:space-between;gap:8px;
+  padding-bottom:8px;border-bottom:1px solid var(--line);}
+.detail-meta b{color:var(--text);font-weight:700;}
 
-  /* ---------- 토스트 알림 ---------- */
-  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
-    background:#ffffff;color:var(--text);border:1px solid var(--border);border-left:4px solid var(--cyan);
-    padding:13px 18px;border-radius:12px;font-size:14px;max-width:90vw;box-shadow:var(--shadow);
-    opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:50;font-weight:500;}
-  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-  #toast.err{border-left-color:var(--red);}
-  #toast.warn{border-left-color:var(--amber);}
-  #toast.ok{border-left-color:var(--green);}
+/* ---------- history ---------- */
+.history-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px;}
+.history-actions{display:flex;gap:9px;}
+.history-actions .btn{min-height:42px;padding:9px 14px;font-size:12.5px;}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--r-xs);border:1px solid var(--line);}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:11.5px;white-space:nowrap;
+  font-variant-numeric:tabular-nums;}
+thead th{background:var(--surface-3);color:var(--text-dim);font-weight:600;text-align:right;
+  padding:11px 13px;letter-spacing:.02em;position:sticky;top:0;}
+thead th:first-child{text-align:center;}
+tbody td{padding:10px 13px;text-align:right;border-top:1px solid var(--line);color:var(--text);}
+tbody td:first-child{text-align:center;color:var(--text-faint);}
+tbody tr:nth-child(even){background:rgba(22,42,80,.025);}
+.empty-row td{text-align:center !important;color:var(--text-faint);padding:22px;font-family:var(--kr);font-size:13px;}
+.tens-cell{color:var(--amber);font-weight:700;}
 
-  @media (max-width:380px){
-    .live-cell .v{font-size:25px;}
-    .tension-hero .big{font-size:46px;}
-  }
+/* ---------- help ---------- */
+.help-grid{display:grid;gap:10px;}
+.help-item{padding:13px 15px;border-radius:var(--r-xs);border:1px solid var(--line);background:var(--ink-2);}
+.help-item .title{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:7px;}
+.help-item .text{font-size:13px;color:var(--text-dim);line-height:1.62;}
+.disclaimer{margin-top:12px;font-size:12px;color:var(--text-faint);line-height:1.65;
+  border:1px dashed var(--line-2);border-radius:var(--r-xs);padding:13px 15px;background:rgba(255,186,82,.03);}
+.disclaimer b{color:var(--amber);font-weight:600;}
+
+/* ---------- toast ---------- */
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+  background:var(--surface-3);color:var(--text);border:1px solid var(--line-2);
+  border-left:3px solid var(--accent);padding:13px 18px;border-radius:var(--r-sm);
+  font-size:13.5px;font-weight:500;max-width:88vw;box-shadow:0 22px 44px -16px rgba(22,42,80,.20);
+  opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:60;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.err{border-left-color:var(--red);}
+#toast.warn{border-left-color:var(--warn);}
+#toast.ok{border-left-color:var(--green);}
+
+@media (max-width:420px){
+  body{padding-left:13px;padding-right:13px;}
+  #resTensionN{font-size:56px;}
+  .stat .stat-v{font-size:23px;}
+  .live-row{grid-template-columns:1fr 1fr;}
+  .conf-ring{grid-column:1 / -1;justify-self:center;margin-top:4px;}
+  .conf-label{grid-column:1 / -1;justify-self:center;}
+  .actions-sub{grid-template-columns:1fr 1fr 1fr;}
+  .estimate-input{grid-template-columns:1fr;}
+}
+/* ---------- 측정 보조 토글 ---------- */
+.toggle-row{display:flex;align-items:center;gap:14px;padding:15px 0;border-bottom:1px solid var(--line);}
+.toggle-row:first-of-type{padding-top:2px;}
+.toggle-row:last-of-type{border-bottom:none;}
+.toggle-info{min-width:0;flex:1;}
+.toggle-name{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;letter-spacing:-.01em;}
+.toggle-desc{font-size:12px;color:var(--text-dim);margin-top:5px;line-height:1.5;}
+.toggle-ctrl{display:flex;align-items:center;gap:9px;flex:none;}
+.switch{width:50px;height:30px;border-radius:999px;border:1px solid var(--line-2);background:var(--surface-3);
+  position:relative;cursor:pointer;transition:background .2s,border-color .2s;padding:0;flex:none;}
+.switch .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.28);transition:left .22s cubic-bezier(.3,.8,.3,1);}
+.switch[aria-pressed="true"]{background:linear-gradient(135deg,var(--accent),var(--accent-deep));border-color:transparent;}
+.switch[aria-pressed="true"] .knob{left:25px;}
+.assist-chip{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;padding:3px 8px;
+  border-radius:999px;background:rgba(12,169,154,.12);color:var(--accent-deep);
+  border:1px solid rgba(12,169,154,.32);text-transform:uppercase;}
+.assist-sel{font-family:var(--mono);font-size:12px;color:var(--text-dim);display:inline-flex;align-items:center;gap:5px;}
+.assist-sel select{width:auto;padding:4px 9px;font-size:13px;border-radius:8px;}
+.mini-btn{font-family:var(--mono);font-size:11px;font-weight:700;padding:8px 11px;border-radius:9px;
+  border:1px solid var(--line-2);background:var(--surface-3);color:var(--text-dim);cursor:pointer;}
+.mini-btn:active{transform:scale(.96);}
+.assist-note{margin-top:13px;padding:11px 13px;border-radius:var(--r-xs);font-size:11.5px;line-height:1.6;
+  color:var(--text-dim);background:var(--ink-2);border:1px solid var(--line);}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="app">
 
-  <!-- ============================= 11.1 상단 영역 ============================= -->
-  <header>
-    <span class="badge-method">U-550 방식 계산식 적용</span>
-    <h1><span class="spark">◢</span> 음파식 벨트 텐션 측정기</h1>
-    <p class="subtitle">스마트폰 마이크로 벨트 진동음을 분석하여 장력을 계산합니다.</p>
-  </header>
+  <!-- ===== TOP BAR ===== -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M2 12 H5 L7 5 L10 19 L13 8 L15 14 H18 L20 12 H22"
+            stroke="#0b8c80" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title">벨트 텐션 측정기</div>
+        <div class="brand-sub">Sonic · U-550 Method</div>
+      </div>
+    </div>
+    <span id="statusPill" class="status-pill">READY</span>
+  </div>
 
-  <!-- ============================= 11.2 입력 영역 ============================= -->
+  <!-- ===== HERO RESULT ===== -->
+  <section class="hero">
+    <div class="hero-head">
+      <span class="hero-label">보정 후 장력 · Corrected</span>
+      <span id="resJudgeWrap"><span id="resJudge">--</span></span>
+    </div>
+    <div class="hero-readout">
+      <span id="resTensionN">--</span>
+      <span class="hero-unit">N</span>
+    </div>
+    <div class="hero-kgf"><span id="resTensionKgf">--</span> kgf</div>
+
+    <div class="gauge" id="gaugeWrap">
+      <div class="gauge-scale">
+        <span id="gaugeLow">–</span>
+        <span class="mid">목표 범위</span>
+        <span id="gaugeHigh">–</span>
+      </div>
+      <div class="gauge-track">
+        <div id="gaugeZone" class="gauge-zone"></div>
+        <div id="gaugeMarker" class="gauge-marker"></div>
+      </div>
+      <div class="gauge-cap">목표 <b id="resTarget">--</b></div>
+    </div>
+  </section>
+
+  <!-- ===== LIVE ANALYSIS ===== -->
   <section class="panel">
-    <p class="panel-title">측정 조건 입력</p>
-    <div class="inputs">
-      <div class="field">
-        <label>Mass <span class="unit">g/m</span></label>
-        <input id="inMass" type="number" inputmode="decimal" step="any" placeholder="예: 2.5">
+    <div class="panel-title"><span class="ko">실시간 분석</span><span class="en">Live Analysis</span></div>
+    <div class="live-row">
+      <div class="stat">
+        <div class="stat-k">검출 주파수</div>
+        <div class="stat-v"><span id="resFreq">--</span><i>Hz</i></div>
       </div>
-      <div class="field">
-        <label>Width / Rib <span class="unit">mm or count</span></label>
-        <input id="inWidth" type="number" inputmode="decimal" step="any" placeholder="예: 25 또는 1">
+      <div class="stat">
+        <div class="stat-k">현재 주파수</div>
+        <div class="stat-v accent"><span id="liveFreq">--</span><i>Hz</i></div>
       </div>
-      <div class="field full">
-        <label>Span <span class="unit">mm</span></label>
-        <input id="inSpan" type="number" inputmode="decimal" step="any" placeholder="예: 300">
+      <div class="conf-ring">
+        <svg class="ring-svg" viewBox="0 0 64 64">
+          <circle class="ring-bg" cx="32" cy="32" r="26"/>
+          <circle id="confArc" class="ring-arc" cx="32" cy="32" r="26"/>
+        </svg>
+        <div class="conf-center"><span id="resConf">--</span><i>%</i></div>
       </div>
-      <div class="field full">
-        <label>예상 주파수 (Estimate) <span class="unit">Hz</span></label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input id="estFreq" type="number" inputmode="decimal" step="any" placeholder="직접 입력 또는 아래 보정계수로 계산">
-          <input id="kconst" type="number" inputmode="decimal" step="any" value="1000" style="width:120px" title="k constant">
-          <button id="btnEstimate" class="btn" style="padding:10px 12px;min-height:40px">Estimate</button>
-        </div>
-      </div>
+      <div class="conf-label">Confidence</div>
     </div>
-    <div class="row-options">
-      <div class="field">
-        <label>보정계수 (Correction Factor)</label>
-        <input id="inCF" type="number" inputmode="decimal" step="any" value="1.000" placeholder="1.000">
-      </div>
-      <div class="field">
-        <label>FFT 크기</label>
-        <select id="selFFT">
-          <option value="8192">8192</option>
-          <option value="16384" selected>16384 (기본)</option>
-          <option value="32768">32768</option>
-        </select>
-      </div>
+
+    <div class="signal">
+      <div class="signal-head"><span>신호 강도</span><span id="meterVal">0%</span></div>
+      <div class="meter-track"><div id="meterFill" class="meter-fill"></div></div>
     </div>
-    <div class="row-options">
-      <div class="field">
-        <label>목표 장력 <span class="unit">N</span></label>
-        <input id="inTargetN" type="number" inputmode="decimal" step="any" placeholder="예: 500">
-      </div>
-      <div class="field">
-        <label>허용오차 <span class="unit">%</span></label>
-        <input id="inTolPct" type="number" inputmode="decimal" step="any" value="10" placeholder="예: 10">
-      </div>
+
+    <div class="live-foot">
+      <span class="dot-wrap">
+        <span id="statusDot" class="dot"></span>
+        <span id="statusText" class="status-text">대기 중</span>
+      </span>
+      <span class="peak">피크<b id="livePeak">대기</b></span>
     </div>
-    <div class="preset-bar">
-      <button id="btnPreset500" type="button" class="preset-btn">
-        <span class="title">500N ±10%</span>
+  </section>
+
+  <!-- ===== SPECTRUM ===== -->
+  <section class="panel">
+    <div class="panel-title"><span class="ko">주파수 스펙트럼</span><span class="en">10–5000 Hz</span></div>
+    <div class="canvas-box"><canvas id="spectrum"></canvas></div>
+  </section>
+
+  <!-- ===== ACTIONS ===== -->
+  <section class="actions">
+    <button id="btnStart" class="btn btn-start"><span class="ico">●</span> 측정 시작</button>
+    <div class="actions-sub">
+      <button id="btnStop" class="btn btn-stop" disabled><span class="ico">■</span> 중지</button>
+      <button id="btnHold" class="btn btn-hold" disabled><span class="ico">⏸</span> 고정</button>
+      <button id="btnSave" class="btn btn-save" disabled><span class="ico">＋</span> 저장</button>
+    </div>
+  </section>
+
+  <!-- ===== PRESET ===== -->
+  <section class="panel">
+    <div class="panel-title"><span class="ko">측정 모드</span><span class="en">Preset</span></div>
+    <div class="presets">
+      <button id="btnPreset500" type="button" class="preset">
+        <span class="title">500 N <small style="font-size:11px;color:var(--text-faint);font-weight:600;">±10%</small></span>
         <span class="sub">리프팅 벨트 텐션</span>
       </button>
-      <button id="btnPreset170" type="button" class="preset-btn">
-        <span class="title">170N ±20%</span>
+      <button id="btnPreset170" type="button" class="preset">
+        <span class="title">170 N <small style="font-size:11px;color:var(--text-faint);font-weight:600;">±20%</small></span>
         <span class="sub">구동모듈 벨트 텐션</span>
       </button>
     </div>
   </section>
 
-  <!-- ============================= 11.3 측정 조작 영역 ============================= -->
-  <div class="controls">
-    <button id="btnStart" class="btn btn-start"><span class="ico">●</span> 측정 시작</button>
-    <button id="btnStop"  class="btn btn-stop" disabled><span class="ico">■</span> 측정 중지</button>
-    <button id="btnHold"  class="btn btn-hold" disabled><span class="ico">⏸</span> 측정값 고정</button>
-    <button id="btnSave"  class="btn btn-save" disabled><span class="ico">＋</span> 결과 저장</button>
-    <button id="btnClear" class="btn"><span class="ico">↺</span> 기록 초기화</button>
-    <button id="btnCSV"   class="btn"><span class="ico">⤓</span> CSV 다운로드</button>
-  </div>
-
-  <!-- ============================= 11.4 실시간 측정 영역 ============================= -->
+  <!-- ===== ASSIST (노이즈 저감 / 측정 대상 고정) ===== -->
   <section class="panel">
-    <p class="panel-title">실시간 측정</p>
-    <div class="status-bar">
-      <span id="statusDot" class="dot"></span>
-      <span id="statusText" class="status-text">대기 중</span>
-      <span id="statusPill" class="status-pill">READY</span>
-    </div>
-    <div class="live-grid">
-      <div class="live-cell">
-        <div class="k">현재 주파수</div>
-        <div class="v"><span id="liveFreq">--</span><small> Hz</small></div>
+    <div class="panel-title"><span class="ko">측정 보조</span><span class="en">Assist</span></div>
+
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">노이즈 저감
+          <span id="nrChip" class="assist-chip" style="display:none;">학습 중</span>
+        </div>
+        <div class="toggle-desc">주변 소음 스펙트럼을 학습해 실시간 신호에서 차감합니다. 모터·전원 험 등 정상 소음에 강합니다.</div>
       </div>
-      <div class="live-cell">
-        <div class="k">피크 검출</div>
-        <div class="v" id="livePeak" style="font-size:22px;color:var(--muted);">대기</div>
+      <div class="toggle-ctrl">
+        <button id="btnRelearn" class="mini-btn" type="button" style="display:none;">재학습</button>
+        <button id="swNoise" class="switch" type="button" aria-pressed="false" aria-label="노이즈 저감"><span class="knob"></span></button>
       </div>
     </div>
-    <div class="meter">
-      <div class="k"><span>신호 강도</span><span id="meterVal">0%</span></div>
-      <div class="meter-track"><div id="meterFill" class="meter-fill"></div></div>
+
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">측정 대상 고정
+          <span id="lockWidthWrap" class="assist-sel" style="display:none;">± <select id="selLockWidth"><option value="20">20%</option><option value="30" selected>30%</option><option value="40">40%</option></select></span>
+        </div>
+        <div class="toggle-desc" id="lockDesc">예상 주파수 주변의 좁은 대역만 탐색해 엉뚱한 피크를 무시합니다.</div>
+      </div>
+      <div class="toggle-ctrl">
+        <button id="swLock" class="switch" type="button" aria-pressed="false" aria-label="측정 대상 고정"><span class="knob"></span></button>
+      </div>
+    </div>
+
+    <div class="assist-note">노이즈 저감은 측정 직전 조용한 상태에서 자동 학습됩니다. 측정 대상 고정은 예상 주파수(또는 목표 장력)가 있을 때 가장 정확합니다.</div>
+  </section>
+
+  <!-- ===== CONDITIONS ===== -->
+  <details class="panel" open>
+    <summary>측정 조건 설정 <span class="sum-en">Conditions</span> <span class="chev">⌄</span></summary>
+    <div class="panel-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>Mass <span class="unit">g/m</span></label>
+          <input id="inMass" type="number" inputmode="decimal" step="any" placeholder="2.5">
+        </div>
+        <div class="field">
+          <label>Width / Rib <span class="unit">mm·count</span></label>
+          <input id="inWidth" type="number" inputmode="decimal" step="any" placeholder="25 / 1">
+        </div>
+        <div class="field">
+          <label>Span <span class="unit">mm</span></label>
+          <input id="inSpan" type="number" inputmode="decimal" step="any" placeholder="300">
+        </div>
+        <div class="field">
+          <label>보정계수 <span class="unit">CF</span></label>
+          <input id="inCF" type="number" inputmode="decimal" step="any" value="1.000" placeholder="1.000">
+        </div>
+        <div class="field">
+          <label>목표 장력 <span class="unit">N</span></label>
+          <input id="inTargetN" type="number" inputmode="decimal" step="any" placeholder="500">
+        </div>
+        <div class="field">
+          <label>허용오차 <span class="unit">%</span></label>
+          <input id="inTolPct" type="number" inputmode="decimal" step="any" value="10" placeholder="10">
+        </div>
+        <div class="field full">
+          <label>예상 주파수 <span class="unit">Hz · estimate</span></label>
+          <div class="estimate-input">
+            <input id="estFreq" type="number" inputmode="decimal" step="any" placeholder="직접 입력 또는 계산">
+            <input id="kconst" type="number" inputmode="decimal" step="any" value="1000" title="k constant" placeholder="k">
+            <button id="btnEstimate" class="btn" type="button">계산</button>
+          </div>
+        </div>
+        <div class="field full">
+          <label>FFT 크기 <span class="unit">resolution</span></label>
+          <select id="selFFT">
+            <option value="8192">8192</option>
+            <option value="16384" selected>16384 (기본)</option>
+            <option value="32768">32768</option>
+          </select>
+        </div>
+      </div>
+      <div class="note">입력값은 모바일에서 자동으로 1열로 전환됩니다. <b>목표 장력</b>과 <b>허용오차</b>를 넣으면 상단 게이지에 합·부 범위가 표시됩니다.</div>
+    </div>
+  </details>
+
+  <!-- ===== DETAIL RESULT ===== -->
+  <section class="panel">
+    <div class="panel-title"><span class="ko">상세 결과</span><span class="en">Detail</span></div>
+    <div class="detail-grid">
+      <div class="mini"><div class="k">계산 장력 (보정 전)</div><div class="v"><span id="resRawN">--</span> N</div></div>
+      <div class="mini"><div class="k">측정 시간</div><div class="v" style="font-size:15px;"><span id="resTime">--</span></div></div>
+    </div>
+    <div class="detail-meta">
+      <span>Mass <b id="resMass">--</b></span>
+      <span>Width <b id="resWidth">--</b></span>
+      <span>Span <b id="resSpan">--</b></span>
+      <span>CF <b id="resCF">--</b></span>
     </div>
   </section>
 
-  <!-- ============================= 11.6 그래프 영역 ============================= -->
+  <!-- ===== HISTORY ===== -->
   <section class="panel">
-    <p class="panel-title">주파수 스펙트럼 (10–5000 Hz)</p>
-    <div class="canvas-box"><canvas id="spectrum"></canvas></div>
-  </section>
-
-  <!-- ============================= 11.5 최종 결과 영역 ============================= -->
-  <section class="panel">
-    <p class="panel-title">최종 결과</p>
-    <div class="result-cards">
-      <div class="tension-hero">
-        <div class="k">보정 후 장력 (Tension)</div>
-        <div class="big"><span id="resTensionN">--</span><small> N</small></div>
-        <div class="kgf"><span id="resTensionKgf">--</span><small> kgf</small></div>
-      </div>
-      <div class="result-sub">
-        <div class="mini"><div class="k">검출 주파수</div><div class="v"><span id="resFreq">--</span> Hz</div></div>
-        <div class="mini"><div class="k">계산 장력(보정 전)</div><div class="v"><span id="resRawN">--</span> N</div></div>
-      </div>
-      <div class="result-meta">
-        <span>Mass <b id="resMass">--</b> g/m</span>
-        <span>Width <b id="resWidth">--</b> mm/R</span>
-        <span>Span <b id="resSpan">--</b> mm</span>
-        <span>CF <b id="resCF">--</b></span>
-        <span>Target <b id="resTarget">--</b></span>
-        <span class="judge-ok" id="resJudgeWrap">Judge <b id="resJudge">--</b></span>
-        <span>Confidence <b id="resConf">--</b>%</span>
-        <span>측정시간 <b id="resTime">--</b></span>
+    <div class="history-toolbar">
+      <div class="panel-title" style="margin:0;"><span class="ko">측정 기록</span></div>
+      <div class="history-actions">
+        <button id="btnCSV" class="btn" type="button"><span class="ico">⤓</span> CSV</button>
+        <button id="btnClear" class="btn" type="button"><span class="ico">↺</span> 초기화</button>
       </div>
     </div>
-  </section>
-
-  <!-- ============================= 11.7 측정 기록 영역 ============================= -->
-  <section class="panel">
-    <p class="panel-title">측정 기록</p>
     <div class="table-scroll">
       <table id="histTable">
         <thead>
-      <tr>
-        <th>No.</th><th>Time</th><th>Mass</th><th>Width</th><th>Span</th>
-            <th>Freq[Hz]</th><th>T[N]</th><th>T보정[N]</th><th>T[kgf]</th><th>Target</th><th>Judge</th>
-      </tr>
+          <tr>
+            <th>No.</th><th>Time</th><th>Mass</th><th>Width</th><th>Span</th>
+            <th>Freq</th><th>T[N]</th><th>T보정</th><th>kgf</th><th>Target</th><th>Judge</th>
+          </tr>
         </thead>
         <tbody id="histBody">
-          <tr class="empty-row"><td colspan="9">저장된 측정 기록이 없습니다.</td></tr>
+          <tr class="empty-row"><td colspan="11">저장된 측정 기록이 없습니다.</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
-  <!-- ============================= 13. 사용 안내 ============================= -->
-  <section class="panel">
-    <p class="panel-title">사용 안내</p>
-    <ul class="tips">
-      <li>측정 시작 버튼을 누른 후 벨트를 가볍게 튕겨주세요.</li>
-      <li>벨트의 Span 중앙부를 가볍게 충격하여 측정하세요.</li>
-      <li>주변 소음이 적은 환경에서 측정하세요.</li>
-      <li>스마트폰 마이크가 벨트와 너무 멀지 않도록 해주세요.</li>
-      <li>같은 조건에서 2~3회 반복 측정 후 안정적인 값을 사용하세요.</li>
-      <li>Mass는 g/m, Width는 Timing/Flat belt는 mm, V/V-ribbed belt 및 Wire는 Rib 수 또는 1개 단위로 입력하세요.</li>
-      <li>Span은 풀리 접점 사이의 자유 진동 구간 길이(mm)로 입력하세요.</li>
-    </ul>
-    <div class="disclaimer">
-      <b>주의</b> · 이 프로그램은 참고용 측정 도구이며 실제 U-550과 동일한 정확도를 보장하지 않습니다.
-      정밀 측정이 필요하면 실제 장력계 또는 기준 시험값과 비교하여 <b>보정계수(Correction Factor)</b>를 조정해 사용하세요.
+  <!-- ===== HELP ===== -->
+  <details class="panel">
+    <summary>사용 안내 · 주의사항 <span class="sum-en">Guide</span> <span class="chev">⌄</span></summary>
+    <div class="panel-body">
+      <div class="help-grid">
+        <div class="help-item">
+          <div class="title">측정 방법</div>
+          <div class="text">측정 시작 후 Span 중앙부를 짧고 선명하게 튕겨 주세요. 검출 주파수와 장력이 안정될 때까지 1~2회 반복하면 정확도가 좋아집니다.</div>
+        </div>
+        <div class="help-item">
+          <div class="title">환경 주의</div>
+          <div class="text">주변 소음이 크면 검출이 불안정해집니다. 마이크가 벨트를 향하게 하고, 너무 약한 타격은 피하세요.</div>
+        </div>
+        <div class="help-item">
+          <div class="title">저장 기준</div>
+          <div class="text">Confidence가 높고 상태가 GOOD/STABLE일 때 저장하세요. 자동 안정화가 완료되면 결과가 고정됩니다.</div>
+        </div>
+      </div>
+      <div class="disclaimer"><b>안내</b> · 본 측정값은 마이크 입력과 알고리즘 추정에 기반한 참고값입니다. 정밀 측정이 필요하면 기준 장력계와 비교해 보정계수를 조정하세요.</div>
     </div>
-  </section>
+  </details>
 
 </div>
 
 <div id="toast"></div>
 
 <script>
+
 "use strict";
 /* ================================================================
    음파식 벨트 텐션 측정기 (U-550 방식)
@@ -447,6 +660,12 @@ let activePreset=null;             // 현재 선택된 프리셋
 // transient collection state
 let collecting=false, strikeTs=0, collectStartTs=0, collectEndTs=0, collectedSnapshots=[];
 let lastStrikeAt=0;
+/* ---- 측정 보조: 노이즈 저감 / 측정 대상 고정 상태 ---- */
+let noiseReduction={enabled:false};   // 노이즈 저감 ON/OFF
+let noiseProfile=null;                // 주변 소음 스펙트럼(선형 진폭)
+let noiseProfileReady=false;          // 학습 완료 여부
+let targetLock={enabled:false, widthPct:30}; // 측정 대상 고정 ON/OFF + 밴드 폭(±%)
+let lockCenter=NaN, lockLoBin=-1, lockHiBin=-1;
 
 /* ---------- DOM 캐시 ---------- */
 const $ = id => document.getElementById(id);
@@ -684,9 +903,30 @@ function analyzeLoop(){
 
   const sampleRate = audioCtx.sampleRate;
   const binHz = sampleRate / analyser.fftSize;          // 1 bin 당 주파수 폭
+
+  // ★ 노이즈 저감(ON): 주변 소음 스펙트럼을 학습해 실시간 신호에서 bin 단위 차감
+  //   - floatBuf(dB)를 제자리(in-place)로 정제 → 이후 피크/기본주파수 검출이 모두 정제본 사용
+  //   - byteDraw : 그래프용 정제 스펙트럼(저감 효과를 눈으로 확인)
+  let byteDraw = byteBuf;
+  if(noiseReduction.enabled){ byteDraw = applyNoiseReduction(floatBuf, byteBuf, binHz); }
+
   // ---- 10~5000 Hz 범위 필터링 ----
-  const minBin = Math.max(1, Math.floor(MIN_FREQ/binHz));
-  const maxBin = Math.min(floatBuf.length-2, Math.ceil(MAX_FREQ/binHz));
+  let minBin = Math.max(1, Math.floor(MIN_FREQ/binHz));
+  let maxBin = Math.min(floatBuf.length-2, Math.ceil(MAX_FREQ/binHz));
+
+  // ★ 측정 대상 고정(ON): 예상 주파수 주변의 좁은 밴드만 탐색해 엉뚱한 피크 제거
+  lockLoBin=-1; lockHiBin=-1; lockCenter=NaN;
+  if(targetLock.enabled){
+    const c = computeLockCenter();               // 예상/목표 기반 중심 주파수
+    if(isFinite(c) && c>0){
+      lockCenter=c;
+      const w=targetLock.widthPct/100;
+      const lo=Math.max(MIN_FREQ, c*(1-w)), hi=Math.min(MAX_FREQ, c*(1+w));
+      lockLoBin=Math.max(minBin, Math.floor(lo/binHz));
+      lockHiBin=Math.min(maxBin, Math.ceil(hi/binHz));
+      if(lockHiBin>lockLoBin){ minBin=lockLoBin; maxBin=lockHiBin; } // 탐색밴드 축소
+    }
+  }
 
   // 대역 내 최대 피크 bin 탐색 + 노이즈 바닥 추정
   let peakBin=-1, peakDb=-Infinity, sumDb=0, n=0;
@@ -708,7 +948,7 @@ function analyzeLoop(){
   meterFill.style.width=lvlPct+'%'; meterVal.textContent=lvlPct+'%';
 
   // ---- 스펙트럼 그래프 그리기 ----
-  drawSpectrum(byteBuf, binHz, minBin, maxBin, peakBin);
+  drawSpectrum(byteDraw, binHz, minBin, maxBin, peakBin);
 
   // RMS (시간영역)으로 충격(스트라이크) 감지 및 0.5~2s 수집
   const now = Date.now();
@@ -802,6 +1042,57 @@ function computeRMS(){
 }
 
 /* ----------------------------------------------------------------
+   ★ 노이즈 저감: 스펙트럴 차감
+   - 조용한 프레임(충격 수집 중 아님 & RMS 낮음)에서 소음 프로파일을 EMA 학습
+   - 매 프레임 floatBuf(dB)에서 소음 프로파일(선형)을 차감, 스펙트럴 플로어 적용
+   - 반환: 그래프용 정제 byte 스펙트럼
+   ---------------------------------------------------------------- */
+function applyNoiseReduction(floatBuf, byteBuf, binHz){
+  const N=floatBuf.length;
+  if(!noiseProfile || noiseProfile.length!==N){ noiseProfile=new Float32Array(N); noiseProfileReady=false; }
+  const rms=computeRMS();
+  const quiet=(!collecting) && rms<0.05;              // 충격 아닌 조용한 순간만 학습
+  const beta=noiseProfileReady?0.92:0.6;              // 초기엔 빠르게, 이후 천천히 적응
+  const alpha=1.5, floorRatio=0.06;                   // 과차감 계수 / 스펙트럴 플로어
+  const minDb=analyser?analyser.minDecibels:-100, maxDb=analyser?analyser.maxDecibels:-30;
+  const rng=Math.max(1,maxDb-minDb);
+  const out=new Uint8Array(N);
+  for(let i=0;i<N;i++){
+    const lin=Math.pow(10,(floatBuf[i]||-200)/20);
+    if(quiet){ noiseProfile[i]=beta*noiseProfile[i]+(1-beta)*lin; }
+    let cleaned=lin-alpha*noiseProfile[i];
+    if(cleaned < floorRatio*lin) cleaned=floorRatio*lin;   // 음수/뮤지컬 노이즈 방지
+    if(cleaned < 1e-7) cleaned=1e-7;
+    const cdb=20*Math.log10(cleaned);
+    floatBuf[i]=cdb;                                       // 검출용 정제(제자리)
+    let b=(cdb-minDb)/rng*255;                            // 그래프용
+    out[i]=b<0?0:(b>255?255:b);
+  }
+  if(quiet && !noiseProfileReady){ noiseProfileReady=true; setNoiseChip('적용 중'); }
+  return out;
+}
+
+/* ★ 측정 대상 고정: 중심 주파수 산출 (예상 → 목표·파라미터 → k/Span 순) */
+function computeLockCenter(){
+  let c=parseFloat(estFreq.value);
+  if(isFinite(c) && c>0) return c;
+  const mass=parseFloat(inMass.value), width=parseFloat(inWidth.value),
+        span=parseFloat(inSpan.value), cf=parseFloat(inCF.value), targetN=parseFloat(inTargetN.value);
+  const ef=calcExpectedFreq(mass,width,span,targetN,cf);
+  if(isFinite(ef) && ef>0) return ef;
+  const k=parseFloat(kconst.value)||1000;
+  if(isFinite(span) && span>0) return k/span;
+  return NaN;
+}
+
+/* 노이즈 저감 상태칩 갱신 */
+function setNoiseChip(txt){
+  const el=document.getElementById('nrChip');
+  if(!el) return;
+  el.textContent=txt||''; el.style.display=txt?'inline-flex':'none';
+}
+
+/* ----------------------------------------------------------------
    밴드패스 내 후보에서 기본주파수(고조파 제거) 탐색
    floatBuf는 dB 스케일
    ---------------------------------------------------------------- */
@@ -817,6 +1108,11 @@ function detectFundamentalBandpass(floatBuf, binHz, globalMinBin, globalMaxBin){
     const hi = Math.min(MAX_FREQ, expected*1.3);
     loBin = Math.max(globalMinBin, Math.floor(lo/binHz));
     hiBin = Math.min(globalMaxBin, Math.ceil(hi/binHz));
+  }
+  // ★ 측정 대상 고정(ON): 락 밴드로 후보 범위를 강제 제한
+  if(targetLock.enabled && lockLoBin>=0 && lockHiBin>lockLoBin){
+    loBin=Math.max(globalMinBin, lockLoBin);
+    hiBin=Math.min(globalMaxBin, lockHiBin);
   }
   // gather candidates
   const cands = [];
@@ -923,6 +1219,7 @@ function updateResult(freq){
   $('resSpan').textContent=span;
   $('resCF').textContent=cf.toFixed(3);
   $('resTime').textContent=fmtTime(currentResult.time);
+  try{ renderTargetGauge(corrN, targetN, tolPct, judgeOk); }catch(e){}
 }
 
 /* ----------------------------------------------------------------
@@ -966,6 +1263,7 @@ function finalizeCollection(){
   // attach meta
   if(currentResult){ currentResult.confidence = Math.round(confidence); currentResult.rangePercent = rangePercent; }
   $('resConf').textContent = Math.round(confidence);
+  try{ renderConfidenceRing(Math.round(confidence)); }catch(e){}
   // 저장 조건: Confidence>=90 and variation <=3%
   const okToSave = (confidence>=90 && rangePercent<=3);
   btnSave.disabled = !okToSave;
@@ -1006,8 +1304,8 @@ function drawSpectrum(byte, binHz, minBin, maxBin, peakBin){
   if(!byte || byte.length===0){ return; }
 
   // 격자 (주요 주파수 눈금)
-  ctx.strokeStyle='rgba(148,163,184,.28)'; ctx.fillStyle='#64748b';
-  ctx.font='10px Oxanium, monospace'; ctx.textAlign='center'; ctx.lineWidth=1;
+  ctx.strokeStyle='rgba(100,116,139,.22)'; ctx.fillStyle='#94a3b8';
+  ctx.font='11px "JetBrains Mono", monospace'; ctx.textAlign='center'; ctx.lineWidth=1;
   const grids=[10,500,1000,2000,3000,4000,5000];
   grids.forEach(fr=>{
     const x=(fr-MIN_FREQ)/(MAX_FREQ-MIN_FREQ)*W;
@@ -1015,14 +1313,30 @@ function drawSpectrum(byte, binHz, minBin, maxBin, peakBin){
     ctx.fillText(fr>=1000?(fr/1000)+'k':fr, x, H-2);
   });
 
-  // 스펙트럼 막대/면적 그래프
+  // ★ 측정 대상 고정 밴드 음영 + 중심선 표시
+  if(lockLoBin>=0 && lockHiBin>lockLoBin){
+    const lx=((lockLoBin*binHz)-MIN_FREQ)/(MAX_FREQ-MIN_FREQ)*W;
+    const rx=((lockHiBin*binHz)-MIN_FREQ)/(MAX_FREQ-MIN_FREQ)*W;
+    ctx.fillStyle='rgba(12,169,154,.10)';
+    ctx.fillRect(lx,0,Math.max(2,rx-lx),H-14);
+    ctx.strokeStyle='rgba(12,169,154,.45)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(lx,0); ctx.lineTo(lx,H-14); ctx.moveTo(rx,0); ctx.lineTo(rx,H-14); ctx.stroke();
+    if(isFinite(lockCenter)){
+      const cx=(lockCenter-MIN_FREQ)/(MAX_FREQ-MIN_FREQ)*W;
+      ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(12,169,154,.75)';
+      ctx.beginPath(); ctx.moveTo(cx,0); ctx.lineTo(cx,H-14); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+  // 스펙트럼 면적 그래프 (시각화는 항상 전체 대역)
+  const fMin=Math.max(1,Math.floor(MIN_FREQ/binHz));
+  const fMax=Math.min(byte.length-2,Math.ceil(MAX_FREQ/binHz));
   const grad=ctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0,'rgba(34,211,238,.85)');
-  grad.addColorStop(1,'rgba(34,211,238,.05)');
+  grad.addColorStop(0,'rgba(12,169,154,.55)');
+  grad.addColorStop(1,'rgba(12,169,154,.04)');
   ctx.fillStyle=grad;
   ctx.beginPath(); ctx.moveTo(0,H-14);
   const usableH=H-22;
-  for(let i=minBin;i<=maxBin;i++){
+  for(let i=fMin;i<=fMax;i++){
     const f=i*binHz;
     const x=(f-MIN_FREQ)/(MAX_FREQ-MIN_FREQ)*W;
     const y=(H-14)-(byte[i]/255)*usableH;
@@ -1034,14 +1348,14 @@ function drawSpectrum(byte, binHz, minBin, maxBin, peakBin){
   if(peakBin>=minBin && peakBin<=maxBin){
     const pf=peakBin*binHz;
     const px=(pf-MIN_FREQ)/(MAX_FREQ-MIN_FREQ)*W;
-    ctx.strokeStyle='#ffd24a'; ctx.lineWidth=2;
+    ctx.strokeStyle='#d97706'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(px,0); ctx.lineTo(px,H-14); ctx.stroke();
     // 라벨 박스
     const label=Math.round(pf)+' Hz';
-    ctx.font='bold 12px Oxanium, monospace';
+    ctx.font='700 12px "JetBrains Mono", monospace';
     const tw=ctx.measureText(label).width+12;
     let bx=px-tw/2; bx=Math.max(2,Math.min(bx,W-tw-2));
-    ctx.fillStyle='rgba(180,83,9,.10)';
+    ctx.fillStyle='rgba(217,119,6,.14)';
     ctx.fillRect(bx,4,tw,18);
     ctx.fillStyle='#b45309'; ctx.textAlign='center';
     ctx.fillText(label, bx+tw/2, 17);
@@ -1194,6 +1508,52 @@ btnEstimate.addEventListener('click', ()=>{
   inTargetN.addEventListener(evt, refreshPresetEstimate);
 });
 
+/* ---------- ★ 측정 보조 토글 (노이즈 저감 / 측정 대상 고정) ---------- */
+const swNoise=$('swNoise'), swLock=$('swLock'), btnRelearn=$('btnRelearn'),
+      selLockWidth=$('selLockWidth'), lockWidthWrap=$('lockWidthWrap');
+function setSwitch(btn,on){ btn.setAttribute('aria-pressed', on?'true':'false'); }
+function updateAssistInfo(){
+  const el=document.getElementById('lockDesc');
+  if(!el) return;
+  if(!targetLock.enabled){
+    el.textContent='예상 주파수 주변의 좁은 대역만 탐색해 엉뚱한 피크를 무시합니다.'; return;
+  }
+  const c=computeLockCenter();
+  el.textContent=(isFinite(c)&&c>0)
+    ? ('중심 ≈ '+c.toFixed(1)+' Hz · ±'+targetLock.widthPct+'% 대역만 탐색합니다.')
+    : '예상 주파수나 목표 장력을 입력하면 중심이 설정됩니다.';
+}
+swNoise.addEventListener('click', ()=>{
+  noiseReduction.enabled=!noiseReduction.enabled;
+  setSwitch(swNoise, noiseReduction.enabled);
+  btnRelearn.style.display = noiseReduction.enabled?'inline-flex':'none';
+  if(noiseReduction.enabled){
+    noiseProfile=null; noiseProfileReady=false; setNoiseChip('학습 중');
+    toast('노이즈 저감 ON — 조용한 상태에서 주변 소음을 자동 학습합니다.','ok');
+  }else{ setNoiseChip(''); toast('노이즈 저감 OFF','warn'); }
+});
+btnRelearn.addEventListener('click', ()=>{
+  noiseProfile=null; noiseProfileReady=false; setNoiseChip('학습 중');
+  toast('소음 프로파일을 다시 학습합니다.','ok');
+});
+swLock.addEventListener('click', ()=>{
+  targetLock.enabled=!targetLock.enabled;
+  setSwitch(swLock, targetLock.enabled);
+  lockWidthWrap.style.display = targetLock.enabled?'inline-flex':'none';
+  if(targetLock.enabled){
+    const c=computeLockCenter();
+    if(isFinite(c)&&c>0) toast('측정 대상 고정 ON — 중심 ≈ '+c.toFixed(1)+' Hz','ok');
+    else toast('측정 대상 고정 ON — 예상 주파수나 목표 장력을 입력하면 정확해집니다.','warn');
+  }else toast('측정 대상 고정 OFF','warn');
+  updateAssistInfo();
+});
+selLockWidth.addEventListener('change', ()=>{
+  targetLock.widthPct=parseInt(selLockWidth.value,10)||30; updateAssistInfo();
+});
+['input','change'].forEach(evt=>{
+  [inMass,inWidth,inSpan,inCF,inTargetN,estFreq,kconst].forEach(el=>el.addEventListener(evt, updateAssistInfo));
+});
+
 window.addEventListener('resize', setupCanvas);
 window.addEventListener('beforeunload', ()=>{ if(measuring) stopMeasure(); });
 
@@ -1210,6 +1570,56 @@ window.addEventListener('load', ()=>{
     toast(micUnavailableMessage(), 'err');
     btnStart.disabled=true;
   }
+});
+
+/* ====================================================================
+   디자인 훅: 목표 허용밴드 게이지 / Confidence 링
+   (측정 로직과 분리된 표시 전용 함수 — getElementById 직접 사용)
+   ==================================================================== */
+function renderTargetGauge(corrN, targetN, tolPct, judgeOk){
+  var wrap=document.getElementById('gaugeWrap');
+  var zone=document.getElementById('gaugeZone');
+  var marker=document.getElementById('gaugeMarker');
+  var low=document.getElementById('gaugeLow');
+  var high=document.getElementById('gaugeHigh');
+  if(!zone||!marker) return;
+  var ok = isFinite(targetN) && isFinite(tolPct) && targetN>0 && tolPct>0;
+  if(!ok){
+    if(wrap) wrap.classList.add('no-target');
+    zone.style.left='30%'; zone.style.width='40%';
+    marker.style.left='50%'; marker.classList.remove('ok','ng');
+    if(low) low.textContent='–'; if(high) high.textContent='–';
+    return;
+  }
+  if(wrap) wrap.classList.remove('no-target');
+  var lower=targetN*(1-tolPct/100), upper=targetN*(1+tolPct/100);
+  // 도메인: 목표 ± (허용오차 × 2.4) 까지 보여줘 허용밴드가 가운데에 오도록
+  var pad=tolPct/100*2.4;
+  var domMin=targetN*(1-pad), domMax=targetN*(1+pad), span=domMax-domMin;
+  if(span<=0) span=1;
+  zone.style.left=((lower-domMin)/span*100)+'%';
+  zone.style.width=((upper-lower)/span*100)+'%';
+  var mk=(corrN-domMin)/span*100; mk=Math.max(0,Math.min(100,mk));
+  marker.style.left=mk+'%';
+  marker.classList.toggle('ok', judgeOk===true);
+  marker.classList.toggle('ng', judgeOk===false);
+  if(low) low.textContent=Math.round(lower);
+  if(high) high.textContent=Math.round(upper);
+}
+
+function renderConfidenceRing(pct){
+  var arc=document.getElementById('confArc');
+  if(!arc) return;
+  var circ=2*Math.PI*26; // r=26
+  var p=Math.max(0,Math.min(100, isFinite(pct)?pct:0));
+  arc.style.strokeDasharray=circ.toFixed(2);
+  arc.style.strokeDashoffset=(circ*(1-p/100)).toFixed(2);
+  arc.style.stroke = p>=90 ? 'var(--green)' : (p>=60 ? 'var(--warn)' : (p>0 ? 'var(--red)' : 'var(--line-2)'));
+}
+
+window.addEventListener('load', function(){
+  renderConfidenceRing(0);
+  renderTargetGauge(NaN, NaN, NaN, null);
 });
 </script>
 </body>
